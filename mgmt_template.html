@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>New Project Summary | Wiom</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+:root{
+  --bg:#f0f2f5;--surface:#fff;--surface2:#f7f8fa;--border:#e4e7ec;
+  --text:#111827;--text2:#6b7280;--text3:#9ca3af;
+  --accent:#2563eb;--accent-light:#eff6ff;
+  --HH:#dc2626;--HL:#d97706;--LH:#2563eb;--LL:#059669;
+  --shadow:0 1px 3px rgba(0,0,0,.08),0 1px 2px rgba(0,0,0,.04);
+  --shadow-md:0 4px 6px -1px rgba(0,0,0,.1);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);font-size:14px}
+.topbar{background:linear-gradient(135deg,#1e40af,#3b82f6);padding:0 28px;display:flex;align-items:center;justify-content:space-between;height:56px;position:sticky;top:0;z-index:200;box-shadow:0 2px 8px rgba(37,99,235,.3)}
+.logo{display:flex;align-items:center;gap:12px}
+.logo-icon{width:32px;height:32px;background:rgba(255,255,255,.2);border-radius:8px;display:flex;align-items:center;justify-content:center}
+.logo-icon svg{width:18px;height:18px;fill:white}
+.logo-name{font-size:16px;font-weight:700;color:white}
+.logo-sub{font-size:12px;color:rgba(255,255,255,.7);margin-left:4px}
+.topbar-right{display:flex;align-items:center;gap:10px}
+.topbar-pill{font-size:11px;padding:4px 12px;border-radius:20px;background:rgba(255,255,255,.15);color:white;font-weight:500}
+.refresh-btn{font-size:12px;padding:5px 14px;border-radius:20px;background:rgba(255,255,255,.2);color:white;border:1px solid rgba(255,255,255,.3);cursor:pointer;font-family:Inter,sans-serif;font-weight:500;display:flex;align-items:center;gap:6px}
+.refresh-btn:hover{background:rgba(255,255,255,.3)}
+.spin{animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.filter-bar{background:var(--surface);border-bottom:1px solid var(--border);padding:10px 24px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;box-shadow:var(--shadow)}
+.filter-label{font-size:12px;font-weight:600;color:var(--text2);white-space:nowrap}
+.date-chip{font-size:12px;padding:5px 14px;border-radius:20px;border:1px solid var(--border);background:var(--surface);color:var(--text2);cursor:pointer;transition:all .15s;font-family:Inter,sans-serif}
+.date-chip:hover{border-color:#2563eb;color:#2563eb;background:#eff6ff}
+.date-chip.active{background:#2563eb;color:white;border-color:#2563eb}
+.filter-divider{width:1px;height:24px;background:var(--border);flex-shrink:0}
+.date-range-wrap{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.date-range-label{font-size:12px;color:var(--text2)}
+.date-input{font-size:12px;padding:5px 10px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-family:Inter,sans-serif;cursor:pointer}
+.date-input:focus{outline:none;border-color:#2563eb}
+.apply-btn{font-size:12px;padding:5px 16px;border-radius:8px;border:none;background:#2563eb;color:white;cursor:pointer;font-family:Inter,sans-serif;font-weight:500}
+.apply-btn:hover{background:#1d4ed8}
+.clear-btn{font-size:12px;padding:5px 12px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text2);cursor:pointer;font-family:Inter,sans-serif}
+.filter-result{font-size:12px;color:var(--text3);margin-left:auto}
+.filter-result b{color:var(--accent)}
+
+.layout{display:flex;height:calc(100vh - 104px)}
+.sidebar{width:180px;background:var(--surface);border-right:1px solid var(--border);overflow-y:auto;flex-shrink:0;padding:8px 0}
+.sidebar-section{padding:10px 0 4px}
+.nav-btn{display:flex;align-items:center;width:100%;padding:9px 16px;border:none;background:transparent;cursor:pointer;gap:10px;border-left:3px solid transparent;font-family:Inter,sans-serif;transition:all .12s}
+.nav-btn:hover{background:var(--surface2)}
+.nav-btn.active{background:#eff6ff;border-left-color:#2563eb}
+.nav-btn .nb-icon{font-size:14px;flex-shrink:0}
+.nav-btn .nb-label{font-size:13px;color:var(--text);font-weight:400;flex:1;text-align:left}
+.nav-btn.active .nb-label{color:#2563eb;font-weight:500}
+
+.main{flex:1;overflow-y:auto;padding:20px 24px}
+.loading-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;height:60%;gap:14px}
+.loading-spinner{width:36px;height:36px;border:3px solid var(--border);border-top-color:#2563eb;border-radius:50%;animation:spin .8s linear infinite}
+.loading-text{font-size:13px;color:var(--text2)}
+
+.page-header{margin-bottom:20px;display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:10px}
+.page-title{font-size:22px;font-weight:700;color:var(--text);letter-spacing:-.02em}
+.page-subtitle{font-size:13px;color:var(--text2);margin-top:3px}
+.header-badge{font-size:11px;font-weight:600;padding:4px 14px;border-radius:20px;background:linear-gradient(135deg,#2563eb,#7c3aed);color:white}
+
+.stats-row{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-bottom:20px}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 16px;box-shadow:var(--shadow);position:relative;overflow:hidden}
+.stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px}
+.sc-total::before{background:linear-gradient(90deg,#2563eb,#7c3aed)}
+.sc-cats::before{background:linear-gradient(90deg,#7c3aed,#db2777)}
+.sc-HH::before{background:#dc2626}.sc-HL::before{background:#d97706}
+.sc-LH::before{background:#2563eb}.sc-LL::before{background:#059669}
+.stat-val{font-size:28px;font-weight:700;font-family:'JetBrains Mono',monospace;line-height:1}
+.stat-label{font-size:10px;color:var(--text2);margin-top:4px;font-weight:600;text-transform:uppercase;letter-spacing:.05em}
+.stat-pct{font-size:11px;margin-top:2px;font-weight:500}
+.sc-total .stat-val{color:var(--text)}.sc-cats .stat-val{color:#7c3aed}
+.sc-HH .stat-val,.sc-HH .stat-pct{color:#dc2626}
+.sc-HL .stat-val,.sc-HL .stat-pct{color:#d97706}
+.sc-LH .stat-val,.sc-LH .stat-pct{color:#2563eb}
+.sc-LL .stat-val,.sc-LL .stat-pct{color:#059669}
+
+.charts-row{display:grid;grid-template-columns:2fr 1fr;gap:16px;margin-bottom:20px}
+.chart-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;box-shadow:var(--shadow)}
+.chart-title{font-size:13px;font-weight:600;color:var(--text);margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.chart-title-dot{width:8px;height:8px;border-radius:50%}
+.bottom-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px}
+.cats-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:14px}
+.cat-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;box-shadow:var(--shadow);transition:box-shadow .15s}
+.cat-card:hover{box-shadow:var(--shadow-md)}
+.cat-head{padding:12px 16px 10px;border-bottom:1px solid var(--border)}
+.cat-name-row{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.cat-rank{font-size:10px;font-weight:700;color:white;width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.cat-name{font-size:13px;font-weight:600;color:var(--text)}
+.cat-meta{display:flex;align-items:center;gap:10px}
+.cat-count{font-size:12px;color:var(--text2)}.cat-count b{color:var(--text)}
+.cat-pct{font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px;background:#eff6ff;color:#2563eb}
+.cat-bar-wrap{flex:1;height:5px;background:var(--surface2);border-radius:3px;overflow:hidden}
+.cat-bar{height:100%;border-radius:3px}
+.vlist{padding:4px 0}
+.vitem{display:flex;gap:10px;padding:8px 16px;border-bottom:1px solid #f3f4f6}
+.vitem:last-child{border-bottom:none}
+.vbullet{width:5px;height:5px;border-radius:50%;background:#d1d5db;margin-top:7px;flex-shrink:0}
+.vcontent{flex:1}
+.vtext{font-size:12px;color:var(--text);line-height:1.5}
+.vmeta{display:flex;gap:6px;margin-top:4px;flex-wrap:wrap;align-items:center}
+.badge{font-size:10px;font-weight:600;padding:1px 7px;border-radius:4px;font-family:'JetBrains Mono',monospace}
+.b-HH{background:#fef2f2;color:#dc2626;border:1px solid #fecaca}
+.b-HL{background:#fffbeb;color:#d97706;border:1px solid #fde68a}
+.b-LH{background:#eff6ff;color:#2563eb;border:1px solid #bfdbfe}
+.b-LL{background:#ecfdf5;color:#059669;border:1px solid #a7f3d0}
+.b-NA{background:#f9fafb;color:#6b7280;border:1px solid #e5e7eb}
+.partner-chip{font-size:10px;color:var(--text3);background:var(--surface2);padding:1px 6px;border-radius:4px;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.show-more-btn{width:100%;padding:8px 16px;border:none;background:transparent;color:#2563eb;font-size:11px;font-weight:500;cursor:pointer;text-align:left;border-top:1px solid var(--border);font-family:Inter,sans-serif}
+.show-more-btn:hover{background:#eff6ff}
+.top5-table{width:100%;border-collapse:collapse;font-size:12px}
+.top5-table th{padding:8px 10px;text-align:left;font-weight:600;color:var(--text2);border-bottom:2px solid var(--border);font-size:11px;text-transform:uppercase;letter-spacing:.04em}
+.top5-table td{padding:8px 10px;border-bottom:1px solid #f3f4f6;color:var(--text)}
+.top5-table tr:hover td{background:var(--surface2)}
+.rank-badge{display:inline-flex;width:20px;height:20px;border-radius:50%;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:white;background:#6b7280}
+.rank-1{background:linear-gradient(135deg,#f59e0b,#d97706)}
+.rank-2{background:linear-gradient(135deg,#9ca3af,#6b7280)}
+.rank-3{background:linear-gradient(135deg,#b45309,#92400e)}
+.partner-row{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid #f3f4f6}
+.partner-row:last-child{border-bottom:none}
+.partner-name{font-size:12px;color:var(--text);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.partner-bar-wrap{width:80px;height:5px;background:var(--surface2);border-radius:3px;overflow:hidden;flex-shrink:0}
+.partner-bar{height:100%;border-radius:3px;background:linear-gradient(90deg,#3b82f6,#2563eb)}
+.partner-count{font-size:11px;color:var(--text2);font-family:'JetBrains Mono',monospace;min-width:24px;text-align:right}
+.prio-legend{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:16px;padding:10px 14px;background:var(--surface);border:1px solid var(--border);border-radius:10px}
+.pl-item{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2)}
+.pl-dot{width:8px;height:8px;border-radius:2px}
+.no-data{text-align:center;padding:60px 20px;color:var(--text3);font-size:14px}
+.error-box{background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:16px 20px;color:#dc2626;font-size:13px;margin:20px 0;display:flex;align-items:center;gap:10px}
+::-webkit-scrollbar{width:5px;height:5px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:#d1d5db;border-radius:3px}
+@media(max-width:768px){.stats-row{grid-template-columns:repeat(3,1fr)}.charts-row,.bottom-row{grid-template-columns:1fr}.sidebar{width:140px}.cats-grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="logo">
+    <div class="logo-icon"><svg viewBox="0 0 16 16"><path d="M8 1L1 5v6l7 4 7-4V5L8 1zm0 1.8l5 2.87v4.67L8 13.2l-5-2.87V5.67L8 2.8z"/></svg></div>
+    <div><span class="logo-name">New Project Summary</span><span class="logo-sub"> Wiom</span></div>
+  </div>
+  <div class="topbar-right">
+    <span class="topbar-pill" id="total-pill">📞 — Calls</span>
+    <span class="topbar-pill" id="updated-pill">🕐 Loading...</span>
+    <span class="topbar-pill" style="background:rgba(16,185,129,.2)">✓ Auto Updated</span>
+  </div>
+</div>
+
+<div class="filter-bar">
+  <span class="filter-label">📅 Filter:</span>
+  <div style="display:flex;gap:8px">
+    <button class="date-chip active" id="chip-all" onclick="setQuick('all',this)">All Dates</button>
+    <button class="date-chip" id="chip-today" onclick="setQuick('today',this)">Latest Day</button>
+  </div>
+  <div class="filter-divider"></div>
+  <div class="date-range-wrap">
+    <span class="date-range-label">From:</span>
+    <input type="date" id="date-from" class="date-input">
+    <span class="date-range-label">To:</span>
+    <input type="date" id="date-to" class="date-input">
+    <button class="apply-btn" onclick="applyDateRange()">Apply</button>
+    <button class="clear-btn" onclick="setQuick('all',document.getElementById('chip-all'))">Reset</button>
+  </div>
+  <span class="filter-result" id="filter-result"></span>
+</div>
+
+<div class="layout">
+  <div class="sidebar">
+    <div class="sidebar-section">
+      <button class="nav-btn active" id="btn-summary" onclick="showSummary(this)"><span class="nb-icon">📊</span><span class="nb-label">Overall Summary</span></button>
+      <button class="nav-btn" id="btn-daily" onclick="showDailyReport(this)"><span class="nb-icon">📋</span><span class="nb-label">Daily Report</span></button>
+    </div>
+  </div>
+  <div class="main" id="main">
+    <div class="loading-wrap">
+      <div class="loading-spinner"></div>
+      <div class="loading-text">Loading data from Google Sheet...</div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Constants ─────────────────────────────────────────────────────────────────
+const D = __MGMT_DATA__;
+
+const CAT_NORM = {
+  "New system- educational video V2 Sawal Jawab (App / Technical)":"New System Video - App/Technical",
+  "New system- educational video V2 Sawal Jawab (NetBox)":"New System Video - NetBox",
+  "New system- educational video V2 Sawal Jawab (Netbox)":"New System Video - NetBox",
+  "New system - educational video (App / Technical)":"New System Video - App/Technical",
+  "New system - educational video (NetBox)":"New System Video - NetBox",
+  "New system- educational video V2 Sawal Jawab (Other)":"New System Video - Other",
+  "New system- educational video V2 Sawal Jawab (Payout)":"New System Video - Payout",
+  "PNM Releted":"PNM Related","Lead Releted":"Lead Related","Lead flow":"Lead Flow",
+  "PAYGt":"PayG Basic Understanding","ISP recharge Proof":"ISP Recharge Proof",
+  "Want to Remove Lead":"Lead Related","300 Security":"Rs300 Security Deposit",
+  "Breach Fundamental Rule":"Fundamental Breach",
+  "Recovery Rs50":"Recovery - Rs50 Pickup","50 Rupees on Recovery":"Recovery - Rs50 Pickup",
+  "New Project - 5 April Comms":"New Project Comms",
+  "New Project- PayG Mumbai":"PayG Mumbai - New Project",
+};
+function nc(c){return CAT_NORM[c.trim()]||c.trim();}
+
+const COLORS=['#2563eb','#7c3aed','#db2777','#ea580c','#16a34a','#0891b2','#ca8a04','#dc2626','#65a30d','#0284c7','#9333ea','#059669','#d97706','#c026d3','#0369a1','#15803d'];
+const cmap={};let ci=0;
+function cc(n){if(!cmap[n])cmap[n]=COLORS[ci++%COLORS.length];return cmap[n];}
+function pb(p){const v=(p||'NA').replace('#N/A','NA').trim()||'NA';return `<span class="badge b-${v}">${v}</span>`;}
+function int(x){return parseInt(x);}
+
+// ── State ─────────────────────────────────────────────────────────────────────
+let filteredDates = [];
+let currentView = 'summary';
+let charts = [];
+
+// ── CSV Parser ────────────────────────────────────────────────────────────────
+function parseCSV(text){
+  const lines = text.split(/\r?\n/).filter(l=>l.trim());
+  const rows = [];
+  for(let i=1;i<lines.length;i++){
+    const cols = splitCSV(lines[i]);
+    if(cols.length>=5 && cols[0].trim()){
+      rows.push({
+        date:cols[0].trim(),
+        category:nc(cols[1].trim()),
+        verbatim:cols[3].trim(),
+        caller:cols[4].trim(),
+        partner:(cols[5]||'').trim(),
+        priority:((cols[6]||'NA').trim().replace('#N/A','NA')||'NA'),
+      });
+    }
+  }
+  return rows;
+}
+function splitCSV(line){
+  const r=[];let c='';let q=false;
+  for(let i=0;i<line.length;i++){
+    if(line[i]==='"'){q=!q;}
+    else if(line[i]===','&&!q){r.push(c);c='';}
+    else c+=line[i];
+  }
+  r.push(c);return r;
+}
+
+// ── Build data from rows ──────────────────────────────────────────────────────
+function buildData(rows){
+  const DAY=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const MON=['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  function pd(d){const p=d.split('/');return int(p[2])*10000+int(p[0])*100+int(p[1]);}
+
+  const byDate={};
+  rows.forEach(r=>{
+    if(!byDate[r.date])byDate[r.date]={};
+    if(!byDate[r.date][r.category])byDate[r.date][r.category]=[];
+    byDate[r.date][r.category].push(r);
+  });
+
+  const dates=Object.keys(byDate).sort((a,b)=>pd(a)-pd(b));
+  const daily={};
+
+  dates.forEach(date=>{
+    const p=date.split('/');
+    const dt=new Date(int(p[2]),int(p[0])-1,int(p[1]));
+    const total=Object.values(byDate[date]).reduce((s,v)=>s+v.length,0);
+    const cats=Object.entries(byDate[date]).sort((a,b)=>b[1].length-a[1].length);
+    const prio={HH:0,HL:0,LH:0,LL:0,NA:0};
+    cats.forEach(([,recs])=>recs.forEach(r=>{const p2=r.priority;if(prio[p2]!==undefined)prio[p2]++;else prio.NA++;}));
+
+    daily[date]={
+      total,
+      display:`${DAY[dt.getDay()]}, ${p[1]} ${MON[int(p[0])]}`,
+      day:DAY[dt.getDay()], dd:p[1], mm:MON[int(p[0])],
+      prio,
+      categories:cats.map(([name,recs])=>({
+        name,count:recs.length,
+        pct:parseFloat((recs.length/total*100).toFixed(1)),
+        records:recs.map(r=>({v:r.verbatim,p:r.priority,partner:r.partner}))
+      }))
+    };
+  });
+
+  // Overall
+  const prio={HH:0,HL:0,LH:0,LL:0,NA:0};
+  rows.forEach(r=>{if(prio[r.priority]!==undefined)prio[r.priority]++;else prio.NA++;});
+  const catTotals={};
+  rows.forEach(r=>{catTotals[r.category]=(catTotals[r.category]||0)+1;});
+  const partnerTotals={};
+  rows.forEach(r=>{if(r.partner&&r.partner!='#N/A'&&r.partner!='')partnerTotals[r.partner]=(partnerTotals[r.partner]||0)+1;});
+
+  const trend={
+    dates:dates.map(d=>{const p=d.split('/');return `${p[1]}/${p[0]}`;})
+    .map((l,i)=>{const d=daily[dates[i]];return `${d.dd} ${d.mm.slice(0,3)}`;})
+    ,totals:dates.map(d=>daily[d].total)
+    ,HH:dates.map(d=>daily[d].prio.HH||0)
+    ,HL:dates.map(d=>daily[d].prio.HL||0)
+    ,LH:dates.map(d=>daily[d].prio.LH||0)
+    ,LL:dates.map(d=>daily[d].prio.LL||0)
+  };
+
+  return {
+    dates, daily, trend,
+    top_cats:Object.entries(catTotals).sort((a,b)=>b[1]-a[1]),
+    top_partners:Object.entries(partnerTotals).sort((a,b)=>b[1]-a[1]).slice(0,15),
+    overall_prio:prio,
+    total:rows.length
+  };
+}
+
+// ── Load from Sheet ───────────────────────────────────────────────────────────
+async function loadFromSheet(){
+  const icon=document.getElementById('refresh-icon');
+  icon.classList.add('spin');
+  document.getElementById('updated-pill').textContent='🕐 Refreshing...';
+
+  try{
+    const resp = await fetch(SHEET_URL+'&nocache='+Date.now());
+    if(!resp.ok) throw new Error('Sheet fetch failed: '+resp.status);
+    const text = await resp.text();
+    const rows = parseCSV(text);
+    if(!rows.length) throw new Error('No data in sheet');
+
+    D = buildData(rows);
+    filteredDates=[...D.dates];
+
+    // Update UI
+    const now=new Date();
+    const timeStr=`${now.getHours()}:${String(now.getMinutes()).padStart(2,'0')}`;
+    document.getElementById('updated-pill').textContent=`🕐 Updated ${timeStr}`;
+    document.getElementById('total-pill').textContent='📞 __TOTAL__ Calls';
+
+    initDateInputs();
+    updateFilterResult();
+
+    if(currentView==='summary') showSummary(document.getElementById('btn-summary'));
+    else showDailyReport(document.getElementById('btn-daily'));
+
+  }catch(e){
+    console.error(e);
+    document.getElementById('updated-pill').textContent='⚠️ Load failed';
+    document.getElementById('main').innerHTML=`<div class="error-box">⚠️ Could not load from Google Sheet: ${e.message}. Please check internet connection and try refreshing.</div>`;
+  }
+  icon.classList.remove('spin');
+}
+
+// ── Date filter ───────────────────────────────────────────────────────────────
+function dateToISO(d){const p=d.split('/');return `${p[2]}-${p[0].padStart(2,'0')}-${p[1].padStart(2,'0')}`;}
+
+function initDateInputs(){
+  if(!D||!D.dates.length)return;
+  const min=dateToISO(D.dates[0]);
+  const max=dateToISO(D.dates[D.dates.length-1]);
+  const df=document.getElementById('date-from');
+  const dt=document.getElementById('date-to');
+  df.min=min; df.max=max; df.value=min;
+  dt.min=min; dt.max=max; dt.value=max;
+}
+
+function setQuick(mode,btn){
+  document.querySelectorAll('.date-chip').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  if(!D)return;
+  if(mode==='all') filteredDates=[...D.dates];
+  else if(mode==='today') filteredDates=[D.dates[D.dates.length-1]];
+  updateFilterResult();
+  if(currentView==='summary') showSummary(document.getElementById('btn-summary'));
+  else showDailyReport(document.getElementById('btn-daily'));
+}
+
+function applyDateRange(){
+  if(!D)return;
+  document.querySelectorAll('.date-chip').forEach(b=>b.classList.remove('active'));
+  const from=document.getElementById('date-from').value;
+  const to=document.getElementById('date-to').value;
+  filteredDates=D.dates.filter(d=>{const iso=dateToISO(d);return iso>=from&&iso<=to;});
+  updateFilterResult();
+  if(currentView==='summary') showSummary(document.getElementById('btn-summary'));
+  else showDailyReport(document.getElementById('btn-daily'));
+}
+
+function updateFilterResult(){
+  if(!D)return;
+  const total=filteredDates.reduce((s,d)=>s+(D.daily[d]?.total||0),0);
+  document.getElementById('filter-result').innerHTML=`Showing <b>${filteredDates.length} day${filteredDates.length!==1?'s':''}</b> · <b>${total} calls</b>`;
+}
+
+function setActive(btn){document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');}
+
+// ── Aggregate filtered data ───────────────────────────────────────────────────
+function getAgg(){
+  let total=0;
+  const prio={HH:0,HL:0,LH:0,LL:0,NA:0};
+  const catMap={};const partnerMap={};
+  const td=[],tt=[],tHH=[],tHL=[],tLH=[],tLL=[];
+  filteredDates.forEach(date=>{
+    const d=D.daily[date];if(!d)return;
+    total+=d.total;
+    td.push(`${d.dd} ${d.mm.slice(0,3)}`);
+    tt.push(d.total);tHH.push(d.prio.HH||0);tHL.push(d.prio.HL||0);tLH.push(d.prio.LH||0);tLL.push(d.prio.LL||0);
+    Object.entries(d.prio).forEach(([k,v])=>{if(prio[k]!==undefined)prio[k]+=v;});
+    d.categories.forEach(cat=>{
+      if(!catMap[cat.name])catMap[cat.name]={count:0,records:[]};
+      catMap[cat.name].count+=cat.count;
+      catMap[cat.name].records.push(...cat.records);
+    });
+    d.categories.forEach(cat=>cat.records.forEach(r=>{
+      if(r.partner&&r.partner!='#N/A'&&r.partner!='')
+        partnerMap[r.partner]=(partnerMap[r.partner]||0)+1;
+    }));
+  });
+  return {total,prio,topCats:Object.entries(catMap).sort((a,b)=>b[1].count-a[1].count),
+    topPartners:Object.entries(partnerMap).sort((a,b)=>b[1]-a[1]).slice(0,12),
+    trendDates:td,trendTotals:tt,trendHH:tHH,trendHL:tHL,trendLH:tLH,trendLL:tLL};
+}
+
+function destroyCharts(){charts.forEach(c=>{try{c.destroy();}catch(e){}});charts=[];}
+
+// ── SUMMARY VIEW ──────────────────────────────────────────────────────────────
+function showSummary(btn){
+  currentView='summary';setActive(btn);destroyCharts();
+  if(!D){document.getElementById('main').innerHTML='<div class="loading-wrap"><div class="loading-spinner"></div><div class="loading-text">Loading...</div></div>';return;}
+  if(!filteredDates.length){document.getElementById('main').innerHTML='<div class="no-data">No dates selected.</div>';return;}
+
+  const {total,prio,topCats,topPartners,trendDates,trendTotals,trendHH,trendHL,trendLH,trendLL}=getAgg();
+  const firstD=D.daily[filteredDates[0]];
+  const lastD=D.daily[filteredDates[filteredDates.length-1]];
+  const rangeLabel=filteredDates.length===1?firstD.display:`${firstD.dd} ${firstD.mm} – ${lastD.dd} ${lastD.mm}`;
+
+  document.getElementById('main').innerHTML=`
+  <div class="page-header">
+    <div><div class="page-title">New Project Summary</div><div class="page-subtitle">${rangeLabel} · ${filteredDates.length} day${filteredDates.length!==1?'s':''} · ${total} calls</div></div>
+    <span class="header-badge">📊 Overall View</span>
+  </div>
+  <div class="stats-row">
+    <div class="stat-card sc-total"><div class="stat-val">${total}</div><div class="stat-label">Total Calls</div></div>
+    <div class="stat-card sc-cats"><div class="stat-val">${topCats.length}</div><div class="stat-label">Categories</div></div>
+    <div class="stat-card sc-HH"><div class="stat-val">${prio.HH}</div><div class="stat-label">HH Priority</div><div class="stat-pct">${total?Math.round(prio.HH/total*100):0}%</div></div>
+    <div class="stat-card sc-HL"><div class="stat-val">${prio.HL}</div><div class="stat-label">HL Priority</div><div class="stat-pct">${total?Math.round(prio.HL/total*100):0}%</div></div>
+    <div class="stat-card sc-LH"><div class="stat-val">${prio.LH}</div><div class="stat-label">LH Priority</div><div class="stat-pct">${total?Math.round(prio.LH/total*100):0}%</div></div>
+    <div class="stat-card sc-LL"><div class="stat-val">${prio.LL}</div><div class="stat-label">LL Priority</div><div class="stat-pct">${total?Math.round(prio.LL/total*100):0}%</div></div>
+  </div>
+  <div class="charts-row">
+    <div class="chart-card">
+      <div class="chart-title"><div class="chart-title-dot" style="background:#2563eb"></div>Daily Call Volume Trend</div>
+      <div style="position:relative;height:220px"><canvas id="trendChart" role="img" aria-label="Daily trend"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title"><div class="chart-title-dot" style="background:#7c3aed"></div>Priority Distribution</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:8px">
+        ${['HH','HL','LH','LL'].map((k,i)=>`<span style="font-size:11px;display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:2px;background:${['#dc2626','#d97706','#2563eb','#059669'][i]};display:inline-block"></span>${k} ${prio[k]}</span>`).join('')}
+      </div>
+      <div style="position:relative;height:180px"><canvas id="prioChart" role="img" aria-label="Priority donut"></canvas></div>
+    </div>
+  </div>
+  <div class="bottom-row">
+    <div class="chart-card">
+      <div class="chart-title"><div class="chart-title-dot" style="background:#ea580c"></div>Top Categories</div>
+      <div style="position:relative;height:${Math.min(topCats.length,10)*36+40}px"><canvas id="catChart" role="img" aria-label="Categories"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title"><div class="chart-title-dot" style="background:#059669"></div>Top Partners by Volume</div>
+      <div id="partner-list" style="padding-top:4px"></div>
+    </div>
+  </div>
+  <div class="chart-card" style="margin-bottom:16px">
+    <div class="chart-title"><div class="chart-title-dot" style="background:#dc2626"></div>Top 5 Issues in Selected Period</div>
+    <table class="top5-table">
+      <thead><tr><th>#</th><th>Category</th><th>Count</th><th>%</th><th>Sample Issue</th></tr></thead>
+      <tbody>${topCats.slice(0,5).map(([name,cat],i)=>`
+        <tr><td><span class="rank-badge rank-${i<3?i+1:''}">${i+1}</span></td>
+        <td style="font-weight:500">${name}</td>
+        <td><b style="font-family:'JetBrains Mono',monospace">${cat.count}</b></td>
+        <td><span style="font-size:11px;font-weight:600;color:#2563eb">${total?Math.round(cat.count/total*100):0}%</span></td>
+        <td style="color:#6b7280;font-size:11px">${(cat.records[0]?.v||'—').slice(0,70)}</td></tr>`).join('')}
+      </tbody>
+    </table>
+  </div>`;
+
+  charts.push(new Chart(document.getElementById('trendChart'),{
+    type:'bar',
+    data:{labels:trendDates,datasets:[
+      {label:'Total',data:trendTotals,backgroundColor:'rgba(37,99,235,.15)',borderColor:'#2563eb',borderWidth:2,type:'line',fill:true,tension:0.4,pointRadius:3},
+      {label:'HH',data:trendHH,backgroundColor:'#dc2626',borderRadius:3},
+      {label:'HL',data:trendHL,backgroundColor:'#d97706',borderRadius:3},
+      {label:'LH',data:trendLH,backgroundColor:'#2563eb',borderRadius:3},
+      {label:'LL',data:trendLL,backgroundColor:'#059669',borderRadius:3},
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true,position:'top',labels:{font:{size:11},boxWidth:12,padding:8}}},scales:{x:{ticks:{font:{size:10},maxRotation:45}},y:{ticks:{font:{size:10}}}}}
+  }));
+  charts.push(new Chart(document.getElementById('prioChart'),{
+    type:'doughnut',
+    data:{labels:['HH','HL','LH','LL','NA'],datasets:[{data:[prio.HH,prio.HL,prio.LH,prio.LL,prio.NA],backgroundColor:['#dc2626','#d97706','#2563eb','#059669','#9ca3af'],borderWidth:2}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},cutout:'65%'}
+  }));
+  const top10=topCats.slice(0,10);
+  charts.push(new Chart(document.getElementById('catChart'),{
+    type:'bar',
+    data:{labels:top10.map(([n])=>n.length>28?n.slice(0,26)+'…':n),datasets:[{data:top10.map(([,v])=>v.count),backgroundColor:top10.map(([n])=>cc(n)),borderRadius:4}]},
+    options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{font:{size:11}}},y:{ticks:{font:{size:11}}}}}
+  }));
+  const maxP=topPartners[0]?.[1]||1;
+  document.getElementById('partner-list').innerHTML=topPartners.map(([name,cnt],i)=>`
+    <div class="partner-row"><span class="rank-badge rank-${i<3?i+1:''}">${i+1}</span>
+    <span class="partner-name" title="${name}">${name}</span>
+    <div class="partner-bar-wrap"><div class="partner-bar" style="width:${Math.round(cnt/maxP*100)}%"></div></div>
+    <span class="partner-count">${cnt}</span></div>`).join('');
+}
+
+// ── DAILY REPORT VIEW ─────────────────────────────────────────────────────────
+function showDailyReport(btn){
+  currentView='daily';setActive(btn);destroyCharts();
+  if(!D||!filteredDates.length){document.getElementById('main').innerHTML='<div class="no-data">No dates selected.</div>';return;}
+
+  // Show latest date in filtered range
+  const date=filteredDates[filteredDates.length-1];
+  const d=D.daily[date];
+  const total=d.total; const op=d.prio;
+
+  document.getElementById('main').innerHTML=`
+  <div class="page-header">
+    <div><div class="page-title">Daily Partner Call Report</div></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      ${filteredDates.map(fd=>`<button onclick="renderDailyDate('${fd}')" id="dbtn-${fd.replace(/\//g,'-')}" style="font-size:11px;padding:4px 12px;border-radius:16px;border:1px solid var(--border);background:${fd===date?'#2563eb':'var(--surface)'};color:${fd===date?'white':'var(--text2)'};cursor:pointer;font-family:Inter,sans-serif">${D.daily[fd].dd} ${D.daily[fd].mm}</button>`).join('')}
+    </div>
+  </div>
+  <div id="daily-content"></div>`;
+
+  renderDailyDate(date);
+}
+
+function renderDailyDate(date){
+  // Update active button
+  document.querySelectorAll('[id^="dbtn-"]').forEach(b=>{
+    const isActive=b.id===`dbtn-${date.replace(/\//g,'-')}`;
+    b.style.background=isActive?'#2563eb':'var(--surface)';
+    b.style.color=isActive?'white':'var(--text2)';
+  });
+  destroyCharts();
+  const d=D.daily[date]; const total=d.total; const op=d.prio;
+
+  document.getElementById('daily-content').innerHTML=`
+  <div class="stats-row" style="margin-top:16px">
+    <div class="stat-card sc-total"><div class="stat-val">${total}</div><div class="stat-label">Total Calls</div></div>
+    <div class="stat-card sc-cats"><div class="stat-val">${d.categories.length}</div><div class="stat-label">Categories</div></div>
+    <div class="stat-card sc-HH"><div class="stat-val">${op.HH||0}</div><div class="stat-label">HH Priority</div><div class="stat-pct">${Math.round((op.HH||0)/total*100)}%</div></div>
+    <div class="stat-card sc-HL"><div class="stat-val">${op.HL||0}</div><div class="stat-label">HL Priority</div><div class="stat-pct">${Math.round((op.HL||0)/total*100)}%</div></div>
+    <div class="stat-card sc-LH"><div class="stat-val">${op.LH||0}</div><div class="stat-label">LH Priority</div><div class="stat-pct">${Math.round((op.LH||0)/total*100)}%</div></div>
+    <div class="stat-card sc-LL"><div class="stat-val">${op.LL||0}</div><div class="stat-label">LL Priority</div><div class="stat-pct">${Math.round((op.LL||0)/total*100)}%</div></div>
+  </div>
+  <div class="charts-row">
+    <div class="chart-card">
+      <div class="chart-title"><div class="chart-title-dot" style="background:#ea580c"></div>Category Breakdown — ${d.display}</div>
+      <div style="position:relative;height:${Math.min(d.categories.length,10)*34+40}px"><canvas id="dayCatChart" role="img" aria-label="Categories"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title"><div class="chart-title-dot" style="background:#7c3aed"></div>Priority Split</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">
+        ${['HH','HL','LH','LL'].map((k,i)=>`<span style="font-size:11px;display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:2px;background:${['#dc2626','#d97706','#2563eb','#059669'][i]};display:inline-block"></span>${k} ${op[k]||0}</span>`).join('')}
+      </div>
+      <div style="position:relative;height:180px"><canvas id="dayPrioChart" role="img" aria-label="Priority donut"></canvas></div>
+    </div>
+  </div>
+  <div class="chart-card" style="margin-bottom:16px">
+    <div class="chart-title"><div class="chart-title-dot" style="background:#dc2626"></div>Top 5 Issues of ${d.display}</div>
+    <table class="top5-table">
+      <thead><tr><th>#</th><th>Category</th><th>Count</th><th>%</th><th>Top Issue</th></tr></thead>
+      <tbody>${d.categories.slice(0,5).map((cat,i)=>`
+        <tr><td><span class="rank-badge rank-${i<3?i+1:''}">${i+1}</span></td>
+        <td style="font-weight:500">${cat.name}</td>
+        <td><b style="font-family:'JetBrains Mono',monospace">${cat.count}</b></td>
+        <td><span style="font-size:11px;font-weight:600;color:#2563eb">${cat.pct}%</span></td>
+        <td style="color:#6b7280;font-size:11px">${(cat.records[0]?.v||'—').slice(0,65)}</td></tr>`).join('')}
+      </tbody>
+    </table>
+  </div>
+  <div class="bottom-row" style="margin-bottom:16px">
+    <div class="chart-card">
+      <div class="chart-title"><div class="chart-title-dot" style="background:#059669"></div>Partner Issues — ${d.display}</div>
+      <div id="day-partners"></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title"><div class="chart-title-dot" style="background:#0891b2"></div>Priority Trend — All Days</div>
+      <div style="position:relative;height:200px"><canvas id="allDayChart" role="img" aria-label="Trend"></canvas></div>
+    </div>
+  </div>
+  <div style="margin-bottom:8px;font-size:13px;font-weight:600;color:var(--text)">All Issues — Category Wise</div>
+  <div class="prio-legend">
+    <div class="pl-item"><div class="pl-dot" style="background:#dc2626"></div><b>HH</b> High Priority, High Impact</div>
+    <div class="pl-item"><div class="pl-dot" style="background:#d97706"></div><b>HL</b> High Priority, Low Impact</div>
+    <div class="pl-item"><div class="pl-dot" style="background:#2563eb"></div><b>LH</b> Low Priority, High Impact</div>
+    <div class="pl-item"><div class="pl-dot" style="background:#059669"></div><b>LL</b> Low Priority, Low Impact</div>
+  </div>
+  <div class="cats-grid">${buildCatsHTML(d)}</div>`;
+
+  document.querySelectorAll('.vh').forEach(el=>el.style.display='none');
+
+  charts.push(new Chart(document.getElementById('dayCatChart'),{
+    type:'bar',
+    data:{labels:d.categories.slice(0,10).map(c=>c.name.length>28?c.name.slice(0,26)+'…':c.name),datasets:[{data:d.categories.slice(0,10).map(c=>c.count),backgroundColor:d.categories.slice(0,10).map(c=>cc(c.name)),borderRadius:4}]},
+    options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{font:{size:11}}},y:{ticks:{font:{size:11}}}}}
+  }));
+  charts.push(new Chart(document.getElementById('dayPrioChart'),{
+    type:'doughnut',
+    data:{labels:['HH','HL','LH','LL'],datasets:[{data:[op.HH||0,op.HL||0,op.LH||0,op.LL||0],backgroundColor:['#dc2626','#d97706','#2563eb','#059669'],borderWidth:2}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},cutout:'65%'}
+  }));
+
+  const dayP={};
+  d.categories.forEach(cat=>cat.records.forEach(r=>{if(r.partner&&r.partner!='#N/A'&&r.partner!='')dayP[r.partner]=(dayP[r.partner]||0)+1;}));
+  const sp=Object.entries(dayP).sort((a,b)=>b[1]-a[1]).slice(0,10);
+  const maxDP=sp[0]?.[1]||1;
+  document.getElementById('day-partners').innerHTML=sp.length?sp.map(([name,cnt],i)=>`
+    <div class="partner-row"><span class="rank-badge rank-${i<3?i+1:''}">${i+1}</span>
+    <span class="partner-name" title="${name}">${name}</span>
+    <div class="partner-bar-wrap"><div class="partner-bar" style="width:${Math.round(cnt/maxDP*100)}%"></div></div>
+    <span class="partner-count">${cnt}</span></div>`).join(''):'<div style="font-size:12px;color:var(--text3);padding:8px 0">No data</div>';
+
+  const {trendDates,trendHH,trendHL,trendLH,trendLL}=getAgg();
+  charts.push(new Chart(document.getElementById('allDayChart'),{
+    type:'line',
+    data:{labels:trendDates,datasets:[
+      {label:'HH',data:trendHH,borderColor:'#dc2626',backgroundColor:'rgba(220,38,38,.1)',fill:true,tension:0.3,pointRadius:3},
+      {label:'HL',data:trendHL,borderColor:'#d97706',backgroundColor:'rgba(217,119,6,.1)',fill:true,tension:0.3,pointRadius:3},
+      {label:'LH',data:trendLH,borderColor:'#2563eb',backgroundColor:'rgba(37,99,235,.1)',fill:true,tension:0.3,pointRadius:3},
+      {label:'LL',data:trendLL,borderColor:'#059669',backgroundColor:'rgba(5,150,105,.1)',fill:true,tension:0.3,pointRadius:3},
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true,position:'top',labels:{font:{size:10},boxWidth:10,padding:6}}},scales:{x:{ticks:{font:{size:9},maxRotation:45}},y:{ticks:{font:{size:10}}}}}
+  }));
+}
+
+function buildCatsHTML(d){
+  const maxCnt=d.categories[0]?.count||1;
+  return d.categories.map((cat,ci)=>{
+    const color=cc(cat.name); const SHOW=3;
+    const items=cat.records.map((r,i)=>`<div class="vitem${i>=SHOW?' vh':''}"><div class="vbullet"></div><div class="vcontent"><div class="vtext">${r.v}</div><div class="vmeta">${pb(r.p)}<span class="partner-chip">${r.partner||''}</span></div></div></div>`).join('');
+    const extra=cat.records.length>SHOW?`<button class="show-more-btn" onclick="toggleMore(this)">+ ${cat.records.length-SHOW} more</button>`:'';
+    return `<div class="cat-card"><div class="cat-head"><div class="cat-name-row"><div class="cat-rank" style="background:${color}">${ci+1}</div><div class="cat-name">${cat.name}</div></div><div class="cat-meta"><div class="cat-count">Count: <b>${cat.count}</b></div><div class="cat-pct">${cat.pct}%</div><div class="cat-bar-wrap"><div class="cat-bar" style="width:${Math.round(cat.count/maxCnt*100)}%;background:${color}"></div></div></div></div><div class="vlist">${items}</div>${extra}</div>`;
+  }).join('');
+}
+
+function toggleMore(btn){
+  const card=btn.closest('.cat-card');const hidden=card.querySelectorAll('.vh');
+  const isH=hidden[0]?.style.display==='none';
+  hidden.forEach(el=>el.style.display=isH?'flex':'none');
+  const n=btn.textContent.match(/\d+/)?.[0]||'';
+  btn.textContent=isH?'− hide extra':`+ ${n} more`;
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+loadFromSheet();
+
+// Data updated on: __UPDATED__
+</script>
+</body>
+</html>
