@@ -11,21 +11,46 @@ CAT_NORM = {
     "New system - educational video (NetBox)":                        "New System Video - NetBox",
     "New system- educational video V2 Sawal Jawab (Other)":           "New System Video - Other",
     "New system- educational video V2 Sawal Jawab (Payout)":          "New System Video - Payout",
-    "PNM Releted": "PNM Related", "Lead Releted": "Lead Related",
-    "Lead flow": "Lead Flow",     "PAYGt": "PayG Basic Understanding",
-    "ISP recharge Proof": "ISP Recharge Proof",
-    "Want to Remove Lead": "Lead Related",
-    "300 Security": "Rs300 Security Deposit",
-    "Breach Fundamental Rule": "Fundamental Breach",
-    "Recovery Rs50": "Recovery - Rs50 Pickup",
-    "50 Rupees on Recovery": "Recovery - Rs50 Pickup",
+    "PNM Releted":            "PNM Related",
+    "Lead Releted":           "Lead Related",
+    "Lead flow":              "Lead Flow",
+    "PAYGt":                  "PayG Basic Understanding",
+    "ISP recharge Proof":     "ISP Recharge Proof",
+    "Want to Remove Lead":    "Lead Related",
+    "300 Security":           "Rs300 Security Deposit",
+    "Breach Fundamental Rule":"Fundamental Breach",
+    "Recovery Rs50":          "Recovery - Rs50 Pickup",
+    "50 Rupees on Recovery":  "Recovery - Rs50 Pickup",
     "New Project - 5 April Comms": "New Project Comms",
-    "New Project- PayG Mumbai": "PayG Mumbai - New Project",
+    "New Project- PayG Mumbai":    "PayG Mumbai - New Project",
 }
 def nc(c): return CAT_NORM.get(c.strip(), c.strip())
 def pd(d):
     p = d.split("/"); return (int(p[2]), int(p[0]), int(p[1]))
 
+# ── Load standardized verbatims lookup ───────────────────────────────────────
+print("Loading standardized verbatims...")
+with open("verbatims_std.json", encoding="utf-8") as f:
+    STD_LOOKUP = json.load(f)
+
+def standardize(raw):
+    """Look up standardized version, fallback to cleaned raw."""
+    raw = raw.strip()
+    # Try exact match first
+    if raw[:120] in STD_LOOKUP:
+        return STD_LOOKUP[raw[:120]]
+    # Try partial match
+    for key, val in STD_LOOKUP.items():
+        if raw[:60] == key[:60]:
+            return val
+    # Fallback: clean up the raw text
+    cleaned = raw.replace("partner bol rahe hai ki", "Partner reported:") \
+                 .replace("PARTNER BOL RAHA HAI KI", "Partner reported:") \
+                 .replace("partner bol raha hai", "Partner reported") \
+                 .replace("cx", "customer").replace("CX", "Customer")
+    return cleaned[:120] if len(cleaned) > 120 else cleaned
+
+# ── Fetch Sheet ───────────────────────────────────────────────────────────────
 print("Fetching Google Sheet...")
 req = urllib.request.Request(SHEET, headers={"User-Agent": "Mozilla/5.0"})
 with urllib.request.urlopen(req, timeout=30) as r:
@@ -36,16 +61,18 @@ reader = csv.reader(io.StringIO(text))
 next(reader)
 for row in reader:
     if len(row) >= 5 and row[0].strip():
+        raw_verbatim = row[3].strip()
         rows.append({
             "date":     row[0].strip(),
             "category": nc(row[1].strip()),
-            "verbatim": row[3].strip(),
+            "verbatim": standardize(raw_verbatim),   # ← standardized!
             "caller":   row[4].strip(),
             "partner":  (row[5].strip() if len(row) > 5 else ""),
             "priority": ((row[6].strip() if len(row) > 6 else "NA") or "NA"),
         })
-print(f"Fetched {len(rows)} rows")
+print(f"Fetched & standardized {len(rows)} rows")
 
+# ── Build data structures ─────────────────────────────────────────────────────
 DAY = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"]
 MON = ["","Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"]
 
@@ -65,9 +92,14 @@ for date in dates:
         "display": f"{DAY[dt.weekday()]}, {p[1]} {MON[int(p[0])]}",
         "day": DAY[dt.weekday()], "dd": p[1], "mm": MON[int(p[0])],
         "categories": [{
-            "name": cat, "count": len(recs),
-            "pct":  round(len(recs) / total * 100, 1),
-            "records": [{"v": r["verbatim"], "p": r["priority"], "partner": r["partner"]} for r in recs]
+            "name":  cat,
+            "count": len(recs),
+            "pct":   round(len(recs) / total * 100, 1),
+            "records": [{
+                "v":       r["verbatim"],
+                "p":       (r["priority"] or "NA").replace("#N/A","NA").strip() or "NA",
+                "partner": r["partner"]
+            } for r in recs]
         } for cat, recs in cats]
     }
 
@@ -91,6 +123,7 @@ mdata = {
 
 now = datetime.datetime.utcnow().strftime("%d %b %Y %H:%M UTC")
 
+# ── Build HTML ────────────────────────────────────────────────────────────────
 with open("template.html", encoding="utf-8") as f:
     tmpl = f.read()
 
@@ -102,4 +135,6 @@ html = html.replace("__DAYS__",    str(len(dates)))
 
 with open("index.html", "w", encoding="utf-8") as f:
     f.write(html)
+
 print(f"Done! index.html built — {len(rows)} rows, {len(dates)} dates, updated {now}")
+
