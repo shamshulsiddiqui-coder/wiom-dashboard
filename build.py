@@ -53,29 +53,29 @@ print(f"Fetched {len(rows)} rows")
 # ── Standardize verbatims using Claude API ────────────────────────────────────
 def standardize_batch(batch):
     if not API_KEY:
-        print("  No API key — skipping standardization")
+        print("  No API key — skipping")
         return [r['verbatim'] for r in batch]
 
     items = "\n".join([f"{i+1}. [{r['category']}] {r['verbatim']}" for i, r in enumerate(batch)])
     prompt = f"""Standardize these partner support call notes into clean professional English.
-Each note is a rough Hindi/Hinglish/broken English description written by a call center agent.
+These are rough notes in Hindi/Hinglish/broken English by call center agents.
 
 Rules:
 - Max 15 words per item
-- Remove caller numbers, agent names, filler words
+- Remove caller numbers, agent names
 - CX = Customer. Keep: PayG, ISP, PNM, NetBox, IVR, Lead, BDO, TDS, Rs amounts
-- Write as a clear, concise issue statement
-- Return ONLY a valid JSON array of strings, same count as input, no extra text
+- Write as a clear concise issue statement
+- Return ONLY a valid JSON array of strings, same count as input, no markdown, no extra text
 
-Input notes:
+Input:
 {items}
 
-Output (JSON array only):"""
+JSON array:"""
 
     payload = json.dumps({
-        "model": "claude-haiku-4-5-20251001",
+        "model":      "claude-haiku-4-5",
         "max_tokens": 2000,
-        "messages": [{"role": "user", "content": prompt}]
+        "messages":   [{"role": "user", "content": prompt}]
     }).encode()
 
     req2 = urllib.request.Request(
@@ -89,10 +89,10 @@ Output (JSON array only):"""
         method="POST"
     )
     with urllib.request.urlopen(req2, timeout=60) as resp:
-        data = json.loads(resp.read())
-    text2 = data['content'][0]['text'].strip()
-    start = text2.find('['); end = text2.rfind(']') + 1
-    return json.loads(text2[start:end])
+        result = json.loads(resp.read())
+    txt = result['content'][0]['text'].strip()
+    start = txt.find('['); end = txt.rfind(']') + 1
+    return json.loads(txt[start:end])
 
 print("Standardizing verbatims with Claude API...")
 BATCH = 25
@@ -177,5 +177,4 @@ html = html.replace("__DAYS__",    str(len(dates)))
 with open("index.html", "w", encoding="utf-8") as f:
     f.write(html)
 
-print(f"Done! index.html built — {len(rows)} rows, {len(dates)} dates, {now}")
-
+print(f"Done! {len(rows)} rows, {len(dates)} dates, updated {now}")
