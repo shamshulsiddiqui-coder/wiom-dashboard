@@ -1,7 +1,8 @@
-import urllib.request, csv, json, io, datetime
+import urllib.request, csv, json, io, datetime, time, os
 from collections import defaultdict
 
 SHEET = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSUbJANVTl4IScrjTiEjdUt_4oa_fsq_4J8jyt2TNnWaEuv76FYM9QE1I5EOq57aOnBxjcTW2lnZf0e/pub?gid=1476030811&single=true&output=csv"
+API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 
 CAT_NORM = {
     "New system- educational video V2 Sawal Jawab (App / Technical)": "New System Video - App/Technical",
@@ -28,28 +29,6 @@ def nc(c): return CAT_NORM.get(c.strip(), c.strip())
 def pd(d):
     p = d.split("/"); return (int(p[2]), int(p[0]), int(p[1]))
 
-# ── Load standardized verbatims lookup ───────────────────────────────────────
-print("Loading standardized verbatims...")
-with open("verbatims_std.json", encoding="utf-8") as f:
-    STD_LOOKUP = json.load(f)
-
-def standardize(raw):
-    """Look up standardized version, fallback to cleaned raw."""
-    raw = raw.strip()
-    # Try exact match first
-    if raw[:120] in STD_LOOKUP:
-        return STD_LOOKUP[raw[:120]]
-    # Try partial match
-    for key, val in STD_LOOKUP.items():
-        if raw[:60] == key[:60]:
-            return val
-    # Fallback: clean up the raw text
-    cleaned = raw.replace("partner bol rahe hai ki", "Partner reported:") \
-                 .replace("PARTNER BOL RAHA HAI KI", "Partner reported:") \
-                 .replace("partner bol raha hai", "Partner reported") \
-                 .replace("cx", "customer").replace("CX", "Customer")
-    return cleaned[:120] if len(cleaned) > 120 else cleaned
-
 # ── Fetch Sheet ───────────────────────────────────────────────────────────────
 print("Fetching Google Sheet...")
 req = urllib.request.Request(SHEET, headers={"User-Agent": "Mozilla/5.0"})
@@ -61,16 +40,80 @@ reader = csv.reader(io.StringIO(text))
 next(reader)
 for row in reader:
     if len(row) >= 5 and row[0].strip():
-        raw_verbatim = row[3].strip()
         rows.append({
             "date":     row[0].strip(),
             "category": nc(row[1].strip()),
-            "verbatim": standardize(raw_verbatim),   # ← standardized!
+            "verbatim": row[3].strip(),
             "caller":   row[4].strip(),
             "partner":  (row[5].strip() if len(row) > 5 else ""),
             "priority": ((row[6].strip() if len(row) > 6 else "NA") or "NA"),
         })
-print(f"Fetched & standardized {len(rows)} rows")
+print(f"Fetched {len(rows)} rows")
+
+# ── Standardize verbatims using Claude API ────────────────────────────────────
+def standardize_batch(batch):
+    if not API_KEY:
+        print("  No API key — skipping standardization")
+        return [r['verbatim'] for r in batch]
+
+    items = "\n".join([f"{i+1}. [{r['category']}] {r['verbatim']}" for i, r in enumerate(batch)])
+    prompt = f"""Standardize these partner support call notes into clean professional English.
+Each note is a rough Hindi/Hinglish/broken English description written by a call center agent.
+
+Rules:
+- Max 15 words per item
+- Remove caller numbers, agent names, filler words
+- CX = Customer. Keep: PayG, ISP, PNM, NetBox, IVR, Lead, BDO, TDS, Rs amounts
+- Write as a clear, concise issue statement
+- Return ONLY a valid JSON array of strings, same count as input, no extra text
+
+Input notes:
+{items}
+
+Output (JSON array only):"""
+
+    payload = json.dumps({
+        "model": "claude-haiku-4-5-20251001",
+        "max_tokens": 2000,
+        "messages": [{"role": "user", "content": prompt}]
+    }).encode()
+
+    req2 = urllib.request.Request(
+        "https://api.anthropic.com/v1/messages",
+        data=payload,
+        headers={
+            "Content-Type":      "application/json",
+            "x-api-key":         API_KEY,
+            "anthropic-version": "2023-06-01",
+        },
+        method="POST"
+    )
+    with urllib.request.urlopen(req2, timeout=60) as resp:
+        data = json.loads(resp.read())
+    text2 = data['content'][0]['text'].strip()
+    start = text2.find('['); end = text2.rfind(']') + 1
+    return json.loads(text2[start:end])
+
+print("Standardizing verbatims with Claude API...")
+BATCH = 25
+results_map = {}
+batches = [rows[i:i+BATCH] for i in range(0, len(rows), BATCH)]
+for bi, batch in enumerate(batches):
+    print(f"  Batch {bi+1}/{len(batches)} ({len(batch)} rows)...")
+    try:
+        results = standardize_batch(batch)
+        for j, r in enumerate(batch):
+            results_map[bi*BATCH+j] = results[j] if j < len(results) else r['verbatim']
+        time.sleep(0.5)
+    except Exception as e:
+        print(f"  Batch {bi+1} failed: {e} — using raw verbatim")
+        for j, r in enumerate(batch):
+            results_map[bi*BATCH+j] = r['verbatim']
+
+for i, r in enumerate(rows):
+    r['std'] = results_map.get(i, r['verbatim'])
+
+print("Standardization complete!")
 
 # ── Build data structures ─────────────────────────────────────────────────────
 DAY = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"]
@@ -90,16 +133,14 @@ for date in dates:
     data[date] = {
         "total":   total,
         "display": f"{DAY[dt.weekday()]}, {p[1]} {MON[int(p[0])]}",
-        "day": DAY[dt.weekday()], "dd": p[1], "mm": MON[int(p[0])],
+        "day":     DAY[dt.weekday()],
+        "dd":      p[1],
+        "mm":      MON[int(p[0])],
         "categories": [{
-            "name":  cat,
-            "count": len(recs),
-            "pct":   round(len(recs) / total * 100, 1),
-            "records": [{
-                "v":       r["verbatim"],
-                "p":       (r["priority"] or "NA").replace("#N/A","NA").strip() or "NA",
-                "partner": r["partner"]
-            } for r in recs]
+            "name":    cat,
+            "count":   len(recs),
+            "pct":     round(len(recs) / total * 100, 1),
+            "records": [{"v": r["std"], "p": (r["priority"] or "NA").replace("#N/A","NA"), "partner": r["partner"]} for r in recs]
         } for cat, recs in cats]
     }
 
@@ -136,5 +177,5 @@ html = html.replace("__DAYS__",    str(len(dates)))
 with open("index.html", "w", encoding="utf-8") as f:
     f.write(html)
 
-print(f"Done! index.html built — {len(rows)} rows, {len(dates)} dates, updated {now}")
+print(f"Done! index.html built — {len(rows)} rows, {len(dates)} dates, {now}")
 
