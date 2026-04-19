@@ -24,10 +24,10 @@ jobs:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: python build.py
 
-      - name: Commit and push updated index.html
+      - name: Commit and push updated files
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add index.html
+          git add index.html management_dashboard.html
           git diff --staged --quiet || git commit -m "Auto update: $(date +'%Y-%m-%d %H:%M UTC')"
           git push
