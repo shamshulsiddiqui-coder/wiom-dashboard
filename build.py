@@ -73,7 +73,7 @@ Input:
 JSON array:"""
 
     payload = json.dumps({
-        "model":      "claude-haiku-4-5",
+        "model":      "claude-3-haiku-20240307",
         "max_tokens": 2000,
         "messages":   [{"role": "user", "content": prompt}]
     }).encode()
